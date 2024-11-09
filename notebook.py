@@ -1,18 +1,9 @@
-# %%
 from collections import Counter
 import re
+
 import numpy as np
 
-# for testing
-from sklearn import naive_bayes, feature_extraction
 
-# %%
-corpus = ['this is the first document',
-          'this document is the second document',
-          'and this is the third one',
-          'is this the first document']
-
-# %%
 class TFIDF:
     def __init__(self):
         self.word_counter = None
@@ -24,24 +15,30 @@ class TFIDF:
 
     def _clean_data(self, data: list[str]) -> list[str]:
         """Cleans and preprocesses data by removing non-alphabet characters and lowering case."""
-        return [' '.join(re.findall(r'[a-zA-Z]+', sentence)).lower() for sentence in data]
+        return [
+            " ".join(re.findall(r"[a-zA-Z]+", sentence)).lower() for sentence in data
+        ]
 
     def _build_vocab(self, cleaned_data: list[str]) -> list[str]:
         """Builds vocabulary and mappings from cleaned data."""
         word_list = [word for sentence in cleaned_data for word in sentence.split()]
         self.word_counter = dict(sorted(Counter(word_list).items()))
-        self.index_to_word = {idx: word for idx, word in enumerate(self.word_counter.keys())}
-        self.word_to_index = {word: idx for idx, word in enumerate(self.word_counter.keys())}
+        self.index_to_word = {
+            idx: word for idx, word in enumerate(self.word_counter.keys())
+        }
+        self.word_to_index = {
+            word: idx for idx, word in enumerate(self.word_counter.keys())
+        }
         self.n_vocab = len(self.word_counter)
 
     def _calculate_document_frequency(self, cleaned_data: list[str]):
         """Calculates document frequency for each word."""
         self.document_frequency = {word: 0 for word in self.word_to_index.keys()}
         for sentence in cleaned_data:
-          splitted_sentence = sentence.split(" ")
-          unique_word = np.unique(splitted_sentence)
-          for word in unique_word:
-            self.document_frequency[word] += 1
+            splitted_sentence = sentence.split(" ")
+            unique_word = np.unique(splitted_sentence)
+            for word in unique_word:
+                self.document_frequency[word] += 1
 
     def _calculate_tfidf(self, sentence: str):
         """Calculates the TF-IDF vector for a single sentence."""
@@ -83,27 +80,16 @@ class TFIDF:
             raise ValueError("The TFIDF model must be fitted before calling transform.")
 
         cleaned_data = self._clean_data(data)
-        transformed_matrix = np.array([self._calculate_tfidf(sentence) for sentence in cleaned_data])
+        transformed_matrix = np.array(
+            [self._calculate_tfidf(sentence) for sentence in cleaned_data]
+        )
         return transformed_matrix
 
     def fit_transform(self, data):
         self.fit(data)
         return self.transform(data)
 
-# %%
-tfidf = TFIDF()
-X_tfidf = tfidf.fit_transform(corpus)
-X_tfidf
 
-# %%
-tfidf_sklearn = feature_extraction.text.TfidfVectorizer()
-X_sklearn = tfidf_sklearn.fit_transform(corpus).toarray()
-X_sklearn
-
-# %%
-assert np.array_equal(X_tfidf, X_sklearn)
-
-# %%
 class MultinomialNB:
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.classes = np.unique(y)
@@ -121,7 +107,9 @@ class MultinomialNB:
             # feature likelihoods = array with cols eq to total feature
             # for each feature, sum all occurrence of that feature
             # divide it by (sum features in that class + total feature)
-            self.feature_likelihoods[cls] = (np.sum(X_cls, axis=0) + 1) / (np.sum(X_cls) + X.shape[1])
+            self.feature_likelihoods[cls] = (np.sum(X_cls, axis=0) + 1) / (
+                np.sum(X_cls) + X.shape[1]
+            )
 
     def predict(self, X):
         predictions = []
@@ -157,30 +145,3 @@ class MultinomialNB:
             # same as np.argmax(list(posteriors.values()))
 
         return np.array(predictions)
-
-# %%
-rng = np.random.RandomState(1)
-X = rng.randint(5, size=(6, 100))
-y = np.array([1, 2, 3, 4, 5, 6])
-
-# %%
-mnb = MultinomialNB()
-
-# %%
-mnb.fit(X, y)
-print(mnb.predict(X[2:3]))
-
-# %%
-clf = naive_bayes.MultinomialNB()
-clf.fit(X, y)
-pred = (clf.predict_joint_log_proba(X[2:3]))
-pred
-
-# %%
-jll = np.array(mnb.join_log_likelihoods)
-jll
-
-# %%
-assert np.allclose(jll, pred)
-
-
