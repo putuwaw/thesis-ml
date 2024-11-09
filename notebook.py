@@ -145,3 +145,47 @@ class MultinomialNB:
             # same as np.argmax(list(posteriors.values()))
 
         return np.array(predictions)
+
+
+class LabelBinarizer:
+    def __init__(self):
+        self.rank_mapping = None
+
+    def fit(self, y):
+        unique_label = np.unique(y)
+        self.rank_mapping = {label: rank for rank, label in enumerate(unique_label)}
+        return self
+
+    def transform(self, y):
+        if len(self.rank_mapping) == 2:
+            result = np.zeros((len(y), 1))
+            for i in range(len(y)):
+                if y[i] == list(self.rank_mapping.keys())[0]:
+                    result[i] = 0
+                else:
+                    result[i] = 1
+            return result
+
+        result = np.zeros((len(y), len(self.rank_mapping)))
+        for i in range(len(y)):
+            if self.rank_mapping.get(y[i], None) is not None:
+                col = self.rank_mapping.get(y[i])
+                result[i][col] = 1
+        return result
+
+    def fit_transform(self, y):
+        self.fit(y)
+        return self.transform(y)
+
+
+def chi_square(X: np.ndarray, y: np.ndarray):
+    y = LabelBinarizer().fit_transform(y)
+
+    observed = np.dot(y.T, X)
+
+    class_prob = np.mean(y, axis=0).reshape(1, -1)
+    feature_count = np.sum(X, axis=0).reshape(1, -1)
+    expected = np.dot(class_prob.T, feature_count)
+
+    chi_square = np.sum((observed - expected) ** 2 / expected, axis=0)
+    return chi_square
