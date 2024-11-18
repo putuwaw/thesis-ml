@@ -5,6 +5,10 @@ import numpy as np
 
 
 class TFIDF:
+    """
+    Ref source: https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html#sklearn.feature_extraction.text.TfidfVectorizer
+    """
+
     def __init__(self):
         self.word_counter = None
         self.index_to_word = None
@@ -91,6 +95,10 @@ class TFIDF:
 
 
 class MultinomialNB:
+    """
+    Ref source: https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html#sklearn.naive_bayes.MultinomialNB
+    """
+
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.classes = np.unique(y)
         self.class_priors = {}
@@ -148,6 +156,10 @@ class MultinomialNB:
 
 
 class LabelBinarizer:
+    """
+    Ref source: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.LabelBinarizer.html
+    """
+
     def __init__(self):
         self.rank_mapping = None
 
@@ -179,6 +191,9 @@ class LabelBinarizer:
 
 
 def chi_square(X: np.ndarray, y: np.ndarray):
+    """
+    Ref source: https://github.com/ethen8181/machine-learning/blob/master/text_classification/chisquare.ipynb
+    """
     y = LabelBinarizer().fit_transform(y)
 
     observed = np.dot(y.T, X)
@@ -189,3 +204,60 @@ def chi_square(X: np.ndarray, y: np.ndarray):
 
     chi_square = np.sum((observed - expected) ** 2 / expected, axis=0)
     return chi_square
+
+
+class SMOTE:
+    """
+    Ref sources: https://www.jair.org/index.php/jair/article/view/10302
+    """
+
+    def __init__(self, k_neighbors: int = 5, random_state: int = 42):
+        self.k_neighbors = k_neighbors
+        self.random_state = random_state
+        self.n_attrs = None
+        self.synthetic = None
+        self.new_index = None
+        np.random.seed(self.random_state)
+
+    def _calculate_neighbors(self, data_point, X) -> np.ndarray:
+        distance = np.linalg.norm(X - data_point, axis=1)
+        sorted_indices = np.argsort(distance)
+        return sorted_indices[1 : self.k_neighbors]
+
+    def _populate(self, N, i, nn_array):
+        while N:
+            nn = np.random.randint(len(nn_array))
+            for attr in range(self.n_attrs):
+                diff = self.X_minority[nn_array[nn]][attr] - self.X_minority[i][attr]
+                gap = np.random.uniform(0, 1)
+                self.synthetic[self.new_index][attr] = self.X_minority[i][attr] + (
+                    gap * diff
+                )
+            self.new_index += 1
+            N -= 1
+
+    def fit_resample(
+        self, X: np.ndarray, y: np.ndarray, sampling_class: int, N: int = 100
+    ) -> tuple[np.ndarray, np.ndarray]:
+        self.n_attrs = X.shape[1]
+        self.X_minority = X[y == sampling_class]
+
+        T = len(self.X_minority)
+        if N < 100:
+            T = int((N / 100) * T)
+            N = 100
+        N = int(N / 100)
+
+        self.synthetic = np.zeros((T * N, self.n_attrs))
+        self.new_index = 0
+
+        for i in range(T):
+            data_point = self.X_minority[i]
+            nn_array = self._calculate_neighbors(data_point, self.X_minority)
+            self._populate(N, i, nn_array)
+
+        X_resampled = np.vstack((X, self.synthetic))
+        y_synthethic = np.ones(self.new_index) * sampling_class
+        y_resampled = np.concatenate((y, y_synthethic))
+
+        return X_resampled, y_resampled
