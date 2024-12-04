@@ -264,15 +264,16 @@ class SMOTE:
 
 
 def split_data(X: np.ndarray, y: np.ndarray, test_size=0.2, random_state=None):
+    """
+    Split data into train, test
+    """
     if random_state:
         np.random.seed(random_state)
 
     indices = np.random.permutation(X.shape[0])
-    print(indices)
     test_size = int(X.shape[0] * test_size)
     test_indices = indices[:test_size]
     train_indices = indices[test_size:]
-    print(train_indices)
 
     X_train, X_test = X[train_indices], X[test_indices]
     y_train, y_test = y[train_indices], y[test_indices]
@@ -281,4 +282,8 @@ def split_data(X: np.ndarray, y: np.ndarray, test_size=0.2, random_state=None):
 
 
 def accuracy_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """
+    Calculate accuracy score.
+    Formula: (TP + TN) / (TP + FP + TN + FN)
+    """
     return float(np.mean(y_true == y_pred))
