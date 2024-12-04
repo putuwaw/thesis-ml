@@ -261,3 +261,24 @@ class SMOTE:
         y_resampled = np.concatenate((y, y_synthethic))
 
         return X_resampled, y_resampled
+
+
+def split_data(X: np.ndarray, y: np.ndarray, test_size=0.2, random_state=None):
+    if random_state:
+        np.random.seed(random_state)
+
+    indices = np.random.permutation(X.shape[0])
+    print(indices)
+    test_size = int(X.shape[0] * test_size)
+    test_indices = indices[:test_size]
+    train_indices = indices[test_size:]
+    print(train_indices)
+
+    X_train, X_test = X[train_indices], X[test_indices]
+    y_train, y_test = y[train_indices], y[test_indices]
+
+    return X_train, X_test, y_train, y_test
+
+
+def accuracy_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    return float(np.mean(y_true == y_pred))
