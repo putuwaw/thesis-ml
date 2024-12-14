@@ -1,4 +1,5 @@
 from collections import Counter
+import copy
 import re
 
 import numpy as np
@@ -287,3 +288,45 @@ def accuracy_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     Formula: (TP + TN) / (TP + FP + TN + FN)
     """
     return float(np.mean(y_true == y_pred))
+
+
+def cross_validation(
+    model,
+    X: np.ndarray,
+    y: np.ndarray,
+    k_folds: int = 5,
+    random_state: int = 42,
+) -> list[float]:
+    """
+    Cross validation for MultinomialNB model
+    """
+    # shuffle data
+    np.random.RandomState(random_state)
+    indices = np.arange(len(y))
+    np.random.shuffle(indices)
+
+    X, y = X[indices], y[indices]
+
+    # split data into k folds
+    fold_size = len(y) // k_folds
+    scores = []
+
+    for i in range(k_folds):
+        start = i * fold_size
+        end = start + fold_size if i != k_folds - 1 else len(y)
+
+        # per iteration, split data into train and validation
+        X_valid, y_valid = X[start:end], y[start:end]
+        X_train = np.concatenate([X[:start], X[end:]], axis=0)
+        y_train = np.concatenate([y[:start], y[end:]], axis=0)
+
+        # model to avoid data leakage between folds
+        model_clone = copy.deepcopy(model)
+
+        # tran and evaluate
+        model_clone.fit(X_train, y_train)
+        y_pred = model_clone.predict(X_valid)
+        score = accuracy_score(y_valid, y_pred)
+        scores.append(score)
+
+    return scores
