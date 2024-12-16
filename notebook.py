@@ -100,11 +100,15 @@ class MultinomialNB:
     Ref source: https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html#sklearn.naive_bayes.MultinomialNB
     """
 
+    def __init__(self, alpha: float = 1.0):
+        self.alpha = alpha
+
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.classes = np.unique(y)
         self.class_priors = {}
         self.feature_likelihoods = {}
         self.join_log_likelihoods = []
+        self.alpha = 1.0  # additive laplacian smoothing
 
         # for each class calculate prior and likelihoods
         for cls in self.classes:
@@ -116,8 +120,8 @@ class MultinomialNB:
             # feature likelihoods = array with cols eq to total feature
             # for each feature, sum all occurrence of that feature
             # divide it by (sum features in that class + total feature)
-            self.feature_likelihoods[cls] = (np.sum(X_cls, axis=0) + 1) / (
-                np.sum(X_cls) + X.shape[1]
+            self.feature_likelihoods[cls] = (np.sum(X_cls, axis=0) + (self.alpha)) / (
+                np.sum(X_cls) + (self.alpha * X.shape[1])
             )
 
     def predict(self, X):
@@ -264,7 +268,7 @@ class SMOTE:
         return X_resampled, y_resampled
 
 
-def split_data(X: np.ndarray, y: np.ndarray, test_size=0.2, random_state=None):
+def split_data(X: np.ndarray, y: np.ndarray, test_size=0.2, random_state=42):
     """
     Split data into train, test
     """
@@ -301,7 +305,7 @@ def cross_validation(
     Cross validation for MultinomialNB model
     """
     # shuffle data
-    np.random.RandomState(random_state)
+    np.random.seed(random_state)
     indices = np.arange(len(y))
     np.random.shuffle(indices)
 
