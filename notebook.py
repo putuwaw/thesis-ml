@@ -108,7 +108,6 @@ class MultinomialNB:
         self.class_priors = {}
         self.feature_likelihoods = {}
         self.join_log_likelihoods = []
-        self.alpha = 1.0  # additive laplacian smoothing
 
         # for each class calculate prior and likelihoods
         for cls in self.classes:
@@ -148,6 +147,7 @@ class MultinomialNB:
                 # log(a*b) = log(a) + log(b), then:
                 # np.prod => np.sum
                 log_posterior += np.sum(np.log(self.feature_likelihoods[cls]) * x)
+                print(log_posterior)
 
                 # add to class posterior
                 posteriors[cls] = np.float64(log_posterior)
