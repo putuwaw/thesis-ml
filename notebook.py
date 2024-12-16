@@ -97,11 +97,20 @@ class TFIDF:
 
 class MultinomialNB:
     """
-    Ref source: https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html#sklearn.naive_bayes.MultinomialNB
+    Ref source:
+
+    scikit-learn: https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html#sklearn.naive_bayes.MultinomialNB
+    standford nlp: https://web.stanford.edu/~jurafsky/slp3/slides/nb24aug.pdf
     """
 
     def __init__(self, alpha: float = 1.0):
         self.alpha = alpha
+
+    def _safe_log(self, x):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_arr = np.log(x)
+        log_arr[np.isinf(log_arr) | np.isnan(log_arr)] = 0
+        return log_arr
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.classes = np.unique(y)
@@ -119,9 +128,11 @@ class MultinomialNB:
             # feature likelihoods = array with cols eq to total feature
             # for each feature, sum all occurrence of that feature
             # divide it by (sum features in that class + total feature)
-            self.feature_likelihoods[cls] = (np.sum(X_cls, axis=0) + (self.alpha)) / (
-                np.sum(X_cls) + (self.alpha * X.shape[1])
-            )
+            a = np.sum(X_cls, axis=0) + (self.alpha)
+            b = np.sum(X_cls) + (self.alpha * X.shape[1])
+            # ref: https://stackoverflow.com/questions/26248654/how-to-return-0-with-divide-by-zero
+            div_result = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
+            self.feature_likelihoods[cls] = div_result
 
     def predict(self, X):
         predictions = []
@@ -146,8 +157,9 @@ class MultinomialNB:
                 # log(likelihoods ^ x ) = log(likelihoods) * x
                 # log(a*b) = log(a) + log(b), then:
                 # np.prod => np.sum
-                log_posterior += np.sum(np.log(self.feature_likelihoods[cls]) * x)
-                print(log_posterior)
+                log_posterior += np.sum(
+                    self._safe_log(self.feature_likelihoods[cls]) * x
+                )
 
                 # add to class posterior
                 posteriors[cls] = np.float64(log_posterior)
