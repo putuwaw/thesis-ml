@@ -3,6 +3,7 @@ import copy
 import re
 
 import numpy as np
+import joblib
 
 
 class TFIDF:
@@ -346,3 +347,19 @@ def cross_validation(
         scores.append(score)
 
     return scores
+
+
+class Pipeline:
+    def __init__(self, model, tfidf, top_features):
+        self.model = model
+        self.tfidf = tfidf
+        self.top_features = top_features
+
+    def save(self, filename: str):
+        joblib.dump(self, filename)
+
+    def predict(self, text: str):
+        prediction = self.model.predict(
+            self.tfidf.transform([text])[:, self.top_features]
+        )
+        return prediction[0]
