@@ -380,3 +380,9 @@ class Pipeline:
             self.tfidf.transform([text])[:, self.top_features]
         )
         return prediction[0]
+    
+    def predict_proba(self, text: str):
+        prediction = self.model.predict_proba(
+            self.tfidf.transform([text])[:, self.top_features]
+        )
+        return prediction
