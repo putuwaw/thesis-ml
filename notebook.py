@@ -113,11 +113,18 @@ class MultinomialNB:
         log_arr[np.isinf(log_arr) | np.isnan(log_arr)] = 0
         return log_arr
 
+    def _logsumexp(self, a, axis=None):
+        # simple version of scipy logsumexp
+        a_max = np.max(a, axis=axis, keepdims=True)
+        stable_exp = np.exp(a - a_max)
+        sum_exp = np.sum(stable_exp, axis=axis, keepdims=False)
+        result = self._safe_log(sum_exp) + np.squeeze(a_max, axis=axis)
+        return result
+
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.classes = np.unique(y)
         self.class_priors = {}
         self.feature_likelihoods = {}
-        self.join_log_likelihoods = []
 
         # for each class calculate prior and likelihoods
         for cls in self.classes:
@@ -136,6 +143,7 @@ class MultinomialNB:
             self.feature_likelihoods[cls] = div_result
 
     def predict(self, X):
+        self.join_log_likelihoods = []
         predictions = []
 
         # for each data
@@ -171,6 +179,15 @@ class MultinomialNB:
             # same as np.argmax(list(posteriors.values()))
 
         return np.array(predictions)
+
+    def predict_proba(self, X):
+        self.predict(X)
+
+        jll = np.array(self.join_log_likelihoods)
+        log_prob_x = self._logsumexp(jll, axis=1)
+        log_prob = jll - np.atleast_2d(log_prob_x).T
+        log_prob = np.exp(log_prob)
+        return log_prob
 
 
 class LabelBinarizer:
