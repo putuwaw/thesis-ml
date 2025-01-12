@@ -272,7 +272,12 @@ class SMOTE:
             N -= 1
 
     def fit_resample(
-        self, X: np.ndarray, y: np.ndarray, sampling_class: int, N: int = 100
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sampling_class: int,
+        n_majority: int,
+        N: int = 100,
     ) -> tuple[np.ndarray, np.ndarray]:
         self.n_attrs = X.shape[1]
         self.X_minority = X[y == sampling_class]
@@ -283,13 +288,26 @@ class SMOTE:
             N = 100
         N = int(N / 100)
 
-        self.synthetic = np.zeros((T * N, self.n_attrs))
+        must_created = n_majority - len(self.X_minority)
+        self.synthetic = np.zeros(shape=(must_created, self.n_attrs))
+
         self.new_index = 0
 
         for i in range(T):
             data_point = self.X_minority[i]
             nn_array = self._calculate_neighbors(data_point, self.X_minority)
             self._populate(N, i, nn_array)
+
+        # modification to make synthetic data eq to majority class
+        if N < 1:
+            diff = must_created - self.new_index
+        else:
+            diff = n_majority - (len(self.X_minority) + self.new_index)
+        if diff > 0:
+            random_idx = np.random.randint(len(self.X_minority))
+            data_poin = self.X_minority[random_idx]
+            nn_array = self._calculate_neighbors(data_poin, self.X_minority)
+            self._populate(diff, random_idx, nn_array)
 
         X_resampled = np.vstack((X, self.synthetic))
         y_synthethic = np.ones(self.new_index) * sampling_class
@@ -380,7 +398,7 @@ class Pipeline:
             self.tfidf.transform([text])[:, self.top_features]
         )
         return prediction[0]
-    
+
     def predict_proba(self, text: str):
         prediction = self.model.predict_proba(
             self.tfidf.transform([text])[:, self.top_features]
